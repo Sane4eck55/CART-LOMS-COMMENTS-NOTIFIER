@@ -1,0 +1,28 @@
+service:
+  host: 0.0.0.0
+  grpc_port: 50051
+  http_port: 8084
+
+jaeger:
+  host: localhost
+  port: 6831
+
+db_master:
+  host: postgres-master
+  port: 5432
+  user: user
+  password: password
+  db_name: route256
+
+db_replica:
+  host: postgres-replica
+  port: 5432
+  user: user
+  password: password
+  db_name: route256
+
+kafka:
+  host: localhost
+  port: 29092
+  order_topic: loms.order-events
+  brokers: kafka:29092 #localhost:9092

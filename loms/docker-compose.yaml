@@ -1,0 +1,148 @@
+version: "3.7"
+
+volumes:
+  prometheus_data: {} #сохраняем данные из prometheus
+  grafana_data: {}  #сохраняем данные из grafana
+
+services:
+  loms:
+    build: .
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+      - "50051:50051" 
+    networks:
+      - shared_net
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v4.15.5
+    ports:
+      - "8089:8080"
+    environment:
+      - SWAGGER_JSON=/swagger/loms.swagger.json
+    volumes:
+      - ./pkg/api/v1/loms.swagger.json:/swagger/loms.swagger.json:ro
+    networks:
+      - shared_net
+  postgres-master:
+    image: gitlab-registry.ozon.dev/go/classroom-20/students/base/postgres:16
+    container_name: postgres-master
+    environment:
+      - POSTGRESQL_USERNAME=user
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_DATABASE=route256
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_SYNCHRONOUS_COMMIT_MODE=on
+      - POSTGRESQL_NUM_SYNCHRONOUS_REPLICAS=1
+    ports:
+      - "5432:5432"
+    networks:
+      - shared_net
+
+  postgres-replica:
+    image: gitlab-registry.ozon.dev/go/classroom-20/students/base/postgres:16
+    container_name: postgres-replica
+    depends_on:
+      - postgres-master
+    environment:
+      - POSTGRESQL_DATABASE=route256
+      - POSTGRESQL_USERNAME=user
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=postgres-master
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_SYNCHRONOUS_COMMIT_MODE=on
+      - POSTGRESQL_NUM_SYNCHRONOUS_REPLICAS=1
+    ports:
+      - "5433:5432"
+    networks:
+      - shared_net
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./internal/infra/metrics/prometheus:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9091:9090"
+    networks:
+      - shared_net
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    networks:
+      - shared_net
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16687:16686"
+      - "4319:4318"
+    environment:
+    - COLLECTOR_OTLP_ENABLED=true
+    - COLLECTOR_OTLP_HTTP_ENABLED=true
+    - COLLECTOR_OTLP_HTTP_PORT=4318
+    networks:
+      - shared_net
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - 8087:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - shared_net
+  kafka:
+    container_name: kafka_loms
+    image: confluentinc/cp-kafka:7.7.1.arm64
+    ports:
+      - 9092:9092
+    networks:
+      - shared_net
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/kafka/29092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_HOST2:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      CLUSTER_ID: '8FCB3C0B-1612-4241-A24B-1C2186D97750'
+  kafka-init-topics:
+    container_name: create-topics-loms.order-events
+    image: confluentinc/cp-kafka:7.7.1.arm64
+    depends_on:
+      - kafka
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+      cub kafka-ready -b kafka:29092 1 30 && \
+      kafka-topics --create --topic loms.order-events --partitions 2 --replication-factor 1 --if-not-exists --bootstrap-server kafka:29092'"
+    networks:
+      - shared_net
+networks:
+  shared_net:
+    external: true

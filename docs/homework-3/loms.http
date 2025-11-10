@@ -1,0 +1,176 @@
+### create normal order
+POST http://localhost:8084/order/create
+Content-Type: application/json
+
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 1076963,
+      "count": 3
+    },
+    {
+      "sku": 135717466,
+      "count": 2
+    }
+  ]
+}
+### expected: 200 (OK) {"orderId":1}
+
+
+### get info, assert status="awaiting payment"
+GET http://localhost:8084/order/info?orderId=1
+Content-Type: application/json
+
+### expected: 200 (OK) {"status":"awaiting payment","user":31337,"Items":[{"sku":1076963,"count":3},{"sku":135717466,"count":2}]}
+
+
+### pay order
+POST http://localhost:8084/order/pay
+Content-Type: application/json
+
+{
+  "orderId": 1
+}
+### expected: 200 (OK) {}
+
+
+### check actual status is "paid"
+GET http://localhost:8084/order/info?orderId=1
+Content-Type: application/json
+
+### expected: 200 (OK) {"status":"paid","user":31337,"Items":[{"sku":1076963,"count":3},{"sku":135717466,"count":2}]}
+
+
+### unable to cancel paid order
+POST http://localhost:8084/order/cancel
+Content-Type: application/json
+
+{
+  "orderId": 1
+}
+### expected: 400 (Bad Request) {"code":9, ... }
+
+
+### get unknown order
+GET http://localhost:8084/order/info?orderId=404
+Content-Type: application/json
+
+### expected: 404 (Not Found) {"code": 5, ... }
+
+
+### cancel order not exists
+POST http://localhost:8084/order/cancel
+Content-Type: application/json
+
+{
+  "orderId": 404
+}
+### expected: 404 (Not Found) {"code": 5, ... }
+
+
+### create order with item that has no stocks info
+POST http://localhost:8084/order/create
+Content-Type: application/json
+
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 404,
+      "count": 3
+    }
+  ]
+}
+### expected: 400 (Bad Request) {"code":9, ... }
+
+
+### check order status is failed (not necessary, because no orderId after creation if any fails)
+GET http://localhost:8084/order/info?orderId=2
+Content-Type: application/json
+
+### expected: 200 (OK) {"status":"failed","userId":31337,"Items":[{"sku":404,"count":3}]}
+
+### cancel failed order
+POST http://localhost:8084/order/cancel
+Content-Type: application/json
+
+{
+  "orderId": 2
+}
+###  expected: 400 (Bad Request) {"code":9, ... }
+
+
+### stock info for unknown sku
+GET http://localhost:8084/stock/info?sku=404
+Content-Type: application/json
+
+### expected: 404 Not Found {"code":5, ... }
+
+
+### stock info for normal sku
+GET http://localhost:8084/stock/info?sku=135717466
+Content-Type: application/json
+
+### expected: 200 (OK) {"count":78}
+
+
+### create order with count for sku more than stock
+POST http://localhost:8084/order/create
+Content-Type: application/json
+
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 135717466,
+      "count": 79
+    }
+  ]
+}
+### expected: 400 (Bad Request) {"code":9, ... }
+
+### no change in stock info after failed order creation
+GET http://localhost:8084/stock/info?sku=135717466
+Content-Type: application/json
+
+### expected: 200 (OK) {"count":78}
+
+### create normal order for cancellation
+POST http://localhost:8084/order/create
+Content-Type: application/json
+
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 135717466,
+      "count": 2
+    }
+  ]
+}
+### expected: 200 (OK) {"orderId":4}
+
+
+### cancel order
+POST http://localhost:8084/order/cancel
+Content-Type: application/json
+
+{
+  "orderId": 4
+}
+### expected: 200 (OK)
+
+
+### check canceled order status
+GET http://localhost:8084/order/info?orderId=4
+Content-Type: application/json
+
+### expected: {"status":"cancelled","user":31337,"Items":[{"sku":135717466,"count":2}]}
+
+
+### check stocks returns
+GET http://localhost:8084/stock/info?sku=135717466
+Content-Type: application/json
+
+### expected: {"count":78}; 200 OK

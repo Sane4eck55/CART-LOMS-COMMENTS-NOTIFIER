@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option go_package = "github.com/Sane4eck55/CART-LOMS-COMMENTS-NOTIFIER/loms/pkg/api/loms/v1;loms";
+
+message MsgProduce {
+    int64  order_id = 1 [json_name = "order_id"];
+    string status = 2 [json_name = "status"];
+    string moment = 3 [json_name = "moment"];
+}
