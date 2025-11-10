@@ -1,0 +1,69 @@
+### check cart state, expect empty cart
+GET http://localhost:8080/user/31337/cart
+Content-Type: application/json
+
+### expected: 404 (Not Found) {}
+
+
+### add item to cart, see available stocks in loms db
+POST http://localhost:8080/user/31337/cart/1076963
+Content-Type: application/json
+
+{
+  "count": 1
+}
+### expected: 200 (OK) {}
+
+
+### check cart state, expect single sku in cart
+GET http://localhost:8080/user/31337/cart
+
+### expected: 200 (OK) {"items":[{"sku":1076963,"count":1,"name":"Теория нравственных чувств | Смит Адам","price":3379}],"totalPrice":3379}
+
+
+#########################
+### checkout cart
+POST http://localhost:8080/checkout/31337
+Content-Type: application/json
+
+### expected: 200 (OK) {"order_id":1}
+
+
+### check orderID in LOMS
+GET http://localhost:8084/order/info?orderId=1
+Content-Type: application/json
+### expected: 200 (OK) {"status":"awaiting payment","user":31337,"Items":[{"sku":1076963,"count":1}]}
+
+
+### check cart, expect empty
+GET http://localhost:8080/user/31337/cart
+Content-Type: application/json
+
+### expected: 404 (Not Found) {}
+
+
+### add unknown item, expect error
+POST http://localhost:8080/user/31337/cart/404
+Content-Type: application/json
+
+{
+  "count": 1
+}
+### expected: 412 (Precondition Failed) {}
+
+
+### add item out of stock, expect error
+POST http://localhost:8080/user/31337/cart/135937324
+Content-Type: application/json
+
+{
+  "count": 65534
+}
+### expected: 412 (Precondition Failed) {}
+
+
+### checkout empty cart, expect error
+POST http://localhost:8080/checkout/31337
+Content-Type: application/json
+
+### expected: 404 (Not Found) {}

@@ -1,0 +1,82 @@
+[
+  {
+    "sku": 139275865,
+    "total_count": 65534,
+    "reserved": 0
+  },
+  {
+    "sku": 2956315,
+    "total_count": 300,
+    "reserved": 30
+  },
+  {
+    "sku": 1076963,
+    "total_count": 300,
+    "reserved": 35
+  },
+  {
+    "sku": 135717466,
+    "total_count": 100,
+    "reserved": 20
+  },
+  {
+    "sku": 135937324,
+    "total_count": 300,
+    "reserved": 30
+  },
+  {
+    "sku": 1625903,
+    "total_count": 10000,
+    "reserved": 0
+  },
+  {
+    "sku": 1148162,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 139819069,
+    "total_count": 100,
+    "reserved": 100
+  },
+  {
+    "sku": 139818428,
+    "total_count": 100,
+    "reserved": 101
+  },
+  {
+    "sku": 2618151,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 2958025,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 3596599,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 3618852,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 4288068,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 4465995,
+    "total_count": 300,
+    "reserved": 0
+  },
+  {
+    "sku": 30816475,
+    "total_count": 300,
+    "reserved": 0
+  }
+]

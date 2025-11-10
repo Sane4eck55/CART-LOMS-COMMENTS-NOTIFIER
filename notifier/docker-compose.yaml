@@ -1,0 +1,18 @@
+version: "3.7"
+
+services:
+  notifier-1:
+    build: .
+    networks:
+      - shared_net
+  notifier-2:
+    build: .
+    networks:
+      - shared_net
+  notifier-3:
+    build: .
+    networks:
+      - shared_net
+networks:
+  shared_net:
+    external: true

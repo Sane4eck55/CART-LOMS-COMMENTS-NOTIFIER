@@ -1,0 +1,14 @@
+.idea
+bin
+example
+.DS_Store
+.vscode
+cart/tests/allure-results/*
+cart/tests/reports
+cart/grafana_data
+bin/*
+vendor-proto
+loms/tests/server/allure-results/*
+loms/tests/reports
+loms/tests/repository/allure-results/*
+loms/grafana_data

@@ -1,0 +1,35 @@
+version: "3.7"
+
+services:
+  comments:
+    build: .
+    ports:
+      - "8086:8084"
+      - "50051:50051" 
+    networks:
+      - shared_net
+  comments-shard-1:
+    image: gitlab-registry.ozon.dev/go/classroom-20/students/base/postgres:16
+    container_name: comments-shard-1
+    environment:
+      - POSTGRESQL_USERNAME=comments-user-1
+      - POSTGRESQL_PASSWORD=comments-password-1
+      - POSTGRESQL_DATABASE=comments_db
+    ports:
+      - "5434:5432"
+    networks:
+      - shared_net
+  comments-shard-2:
+    image: gitlab-registry.ozon.dev/go/classroom-20/students/base/postgres:16
+    container_name: comments-shard-2
+    environment:
+      - POSTGRESQL_USERNAME=comments-user-2
+      - POSTGRESQL_PASSWORD=comments-password-2
+      - POSTGRESQL_DATABASE=comments_db
+    ports:
+      - "5435:5432"
+    networks:
+      - shared_net
+networks:
+  shared_net:
+    external: true

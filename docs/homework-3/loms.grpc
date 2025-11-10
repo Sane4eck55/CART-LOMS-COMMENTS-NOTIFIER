@@ -1,0 +1,189 @@
+### create normal order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCreate <<EOM
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 1076963,
+      "count": 3
+    },
+    {
+      "sku": 135717466,
+      "count": 2
+    }
+  ]
+}
+EOM
+### expected: {"orderId":1}
+
+
+### get info, assert status="awaiting payment"
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderInfo <<EOM
+{
+  "orderId": 1
+}
+EOM
+### expected: {"status":"awaiting payment","userId":31337,"Items":[{"sku":1076963,"count":3},{"sku":135717466,"count":2}]}
+
+
+### pay order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderPay <<EOM
+{
+  "orderId": 1
+}
+EOM
+### expected: {}
+
+
+### check actual status is "paid"
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderInfo <<EOM
+{
+  "orderId": 1
+}
+EOM
+### expected: {"status":"paid","userId":31337,"Items":[{"sku":1076963,"count":3},{"sku":135717466,"count":2}]}
+
+
+### unable to cancel paid order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCancel <<EOM
+{
+  "orderId": 1
+}
+EOM
+### expected: Code: FailedPrecondition ...
+
+
+### get unknown order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderInfo <<EOM
+{
+  "orderId": 404
+}
+EOM
+### expected: Code: NotFound
+
+
+### cancel order not exists
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCancel <<EOM
+{
+  "orderId": 404
+}
+EOM
+### expected: Code: NotFound
+
+
+### create order with item that has no stocks info
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCreate <<EOM
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 404,
+      "count": 3
+    }
+  ]
+}
+EOM
+### expected: Code: FailedPrecondition
+
+
+### check order status is failed (not necessary, because no orderId after creation if any fails)
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderInfo <<EOM
+{
+  "orderId": 2
+}
+EOM
+### expected: {"status":"failed","userId":31337,"Items":[{"sku":404,"count":3}]}
+
+
+### cancel failed order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCancel <<EOM
+{
+  "orderId": 2
+}
+EOM
+### expected: Code: FailedPrecondition
+
+
+
+### stock info for unknown sku
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.StocksInfo <<EOM
+{
+  "sku": 404
+}
+EOM
+### expected: Code: NotFound
+
+
+### stock info for normal sku
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.StocksInfo <<EOM
+{
+  "sku": 135717466
+}
+EOM
+### expected: {"count":78}
+
+
+### create order with count for sku more than stock
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCreate <<EOM
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 135717466,
+      "count": 79
+    }
+  ]
+}
+EOM
+### expected: Code: FailedPrecondition
+
+
+### no change in stock info after failed order creation
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.StocksInfo <<EOM
+{
+  "sku": 135717466
+}
+EOM
+### expected: {"count":78}; 200 OK
+
+
+### create normal order for cancellation
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCreate <<EOM
+{
+  "userId": 31337,
+  "items": [
+    {
+      "sku": 135717466,
+      "count": 2
+    }
+  ]
+}
+EOM
+### expected: {"orderId":4}
+
+
+### cancel order
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderCancel <<EOM
+{
+  "orderId": 4
+}
+EOM
+### expected: {}
+
+
+### check canceled order status
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.OrderInfo <<EOM
+{
+  "orderId": 4
+}
+EOM
+### expected: {"status":"cancelled","userId":31337,"Items":[{"sku":135717466,"count":2}]}
+
+
+### check stocks returns
+grpcurl -plaintext -d @ localhost:8083 loms.Loms.StocksInfo <<EOM
+{
+  "sku": 135717466
+}
+EOM
+### expected: {"count":78}
